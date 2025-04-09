@@ -18,25 +18,69 @@ https://qfish.fisheries.qld.gov.au/query/number-caught-by-area-calendar-year-and
 
 ```{r}
 QFish <-
-  read.csv("data/QFish.csv")
+  read.csv("../data/QFish.csv") |>
+  row_to_names(row_number = 2, remove_rows_above = FALSE) |>
+  clean_names()
 
-getwd()
-
-
-row_to_names(row_number = 1) 
-clean_names()
 head(QFish)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
-
+Subset shark data
 ```{r}
-combination <- QFish
-select(na | contains "combination")
+shark_catch <- QFish |>
+  select (1 | contains("shark")) |>
+  row_to_names(row_number = 1) |>
+  rename(Area = 1) |>
+  mutate(across(-c(Area), as.numeric))
+```
+
+Check
+```{r}
+shark_catch
+```
+
+Make into long df
+```{r}
+shark_catch_long <- 
+shark_catch |>
+  pivot_longer(!Area, names_to = "Year", values_to = "Nos") |>
+  mutate(across(-c(Area), as.numeric))
+
 
 ```
+
+Check
 ```{r}
-shark_catch <-
-  read.csv("cleaned_data")
+shark_catch_long
+```
+
+Making a pivot table
+```{r}
+shark_catch_long<- 
+shark_catch |>
+  pivot_longer(!Area, names_to = "Year", values_to = "Nos")
+```
+
+Make stats tibbles
+```{r}
+shark_stats <- 
+shark_catch_long |>
+  filter(Area != "Grand Total") |>
+  group_by(Year) |>
+  summarise(Mean = mean(Nos, na.rm = TRUE),
+            SD = sd(Nos, na.rm = TRUE)) |>
+  mutate(Year = as.numeric(Year)) |>
+  mutate(Taxa = "Sharks")
+```
+
+Graph
+```{r}
+ggplot(data = shark_stats, aes(x = Year, y = Mean, fill = Taxa, shape = Taxa)) +
+  geom_line(aes(group = Taxa), colour = "black") +
+  geom_pointrange(aes(ymin = Mean - SD, ymax = Mean + SD), colour = "black") +
+  scale_shape_manual(values = c(23, 24))
+```
+
+
+
